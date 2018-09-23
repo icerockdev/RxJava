@@ -15,6 +15,8 @@
  */
 package rx.internal.operators;
 
+import com.google.j2objc.annotations.WeakOuter;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
@@ -410,33 +412,7 @@ public final class OnSubscribeAmb<T> implements OnSubscribe<T>{
             unsubscribeAmbSubscribers(selection.ambSubscribers);
         }
 
-        subscriber.setProducer(new Producer() {
-
-            @Override
-            public void request(long n) {
-                AmbSubscriber<T> c;
-                if ((c = selection.get()) != null) {
-                    // propagate the request to that single Subscriber that won
-                    c.requestMore(n);
-                } else {
-                    //propagate the request to all the amb subscribers
-                    for (AmbSubscriber<T> ambSubscriber: selection.ambSubscribers) {
-                        if (!ambSubscriber.isUnsubscribed()) {
-                            // make a best endeavours check to not waste requests 
-                            // if first emission has already occurred
-                            if (selection.get() == ambSubscriber) {
-                                ambSubscriber.requestMore(n);
-                                // don't need to request from other subscribers because choice has been made
-                                // and request has gone to choice 
-                                return;
-                            } else {
-                                ambSubscriber.requestMore(n);
-                            }
-                        }
-                    }
-                }
-            }
-        });
+        subscriber.setProducer(new AmbProducer<>(selection));
     }
 
     static <T> void unsubscribeAmbSubscribers(Collection<AmbSubscriber<T>> ambSubscribers) {
@@ -445,6 +421,39 @@ public final class OnSubscribeAmb<T> implements OnSubscribe<T>{
                 other.unsubscribe();
             }
             ambSubscribers.clear();
+        }
+    }
+
+    static class AmbProducer<T> implements Producer {
+        private final Selection<T> selection;
+
+        AmbProducer(Selection<T> selection) {
+            this.selection = selection;
+        }
+
+        @Override
+        public void request(long n) {
+            AmbSubscriber<T> c;
+            if ((c = selection.get()) != null) {
+                // propagate the request to that single Subscriber that won
+                c.requestMore(n);
+            } else {
+                //propagate the request to all the amb subscribers
+                for (AmbSubscriber<T> ambSubscriber: selection.ambSubscribers) {
+                    if (!ambSubscriber.isUnsubscribed()) {
+                        // make a best endeavours check to not waste requests
+                        // if first emission has already occurred
+                        if (selection.get() == ambSubscriber) {
+                            ambSubscriber.requestMore(n);
+                            // don't need to request from other subscribers because choice has been made
+                            // and request has gone to choice
+                            return;
+                        } else {
+                            ambSubscriber.requestMore(n);
+                        }
+                    }
+                }
+            }
         }
     }
 }

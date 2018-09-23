@@ -15,6 +15,8 @@
  */
 package rx.internal.operators;
 
+import com.google.j2objc.annotations.Weak;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
@@ -148,7 +150,8 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
         final Subscriber<? super T> child;
         final boolean delayErrors;
         final int maxConcurrent;
-        
+
+        @Weak
         MergeProducer<T> producer;
         
         volatile Queue<Object> queue;

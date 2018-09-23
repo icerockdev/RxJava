@@ -1,12 +1,12 @@
 /**
  * Copyright 2016 Netflix, Inc.
- * 
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,17 +16,26 @@
 
 package rx.internal.operators;
 
-import java.util.*;
-import java.util.concurrent.atomic.*;
+import java.util.Iterator;
+import java.util.Queue;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
-import rx.*;
 import rx.Observable;
 import rx.Observable.OnSubscribe;
-import rx.exceptions.*;
+import rx.Producer;
+import rx.Subscriber;
+import rx.exceptions.Exceptions;
+import rx.exceptions.MissingBackpressureException;
 import rx.functions.Func1;
-import rx.internal.util.*;
-import rx.internal.util.atomic.*;
-import rx.internal.util.unsafe.*;
+import rx.internal.util.ExceptionsUtils;
+import rx.internal.util.RxRingBuffer;
+import rx.internal.util.ScalarSynchronousObservable;
+import rx.internal.util.atomic.SpscAtomicArrayQueue;
+import rx.internal.util.atomic.SpscLinkedArrayQueue;
+import rx.internal.util.unsafe.SpscArrayQueue;
+import rx.internal.util.unsafe.UnsafeAccess;
 import rx.plugins.RxJavaHooks;
 
 /**
@@ -36,70 +45,79 @@ import rx.plugins.RxJavaHooks;
  * @param <R> the output value type
  */
 public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
-    
+
     final Observable<? extends T> source;
-    
+
     final Func1<? super T, ? extends Iterable<? extends R>> mapper;
-    
+
     final int prefetch;
-    
+
     /** Protected: use createFrom to handle source-dependent optimizations. */
     protected OnSubscribeFlattenIterable(Observable<? extends T> source,
-            Func1<? super T, ? extends Iterable<? extends R>> mapper, int prefetch) {
+                                         Func1<? super T, ? extends Iterable<? extends R>> mapper, int prefetch) {
         this.source = source;
         this.mapper = mapper;
         this.prefetch = prefetch;
     }
-    
+
     @Override
     public void call(Subscriber<? super R> t) {
         final FlattenIterableSubscriber<T, R> parent = new FlattenIterableSubscriber<T, R>(t, mapper, prefetch);
-        
+
         t.add(parent);
-        t.setProducer(new Producer() {
-            @Override
-            public void request(long n) {
-                parent.requestMore(n);
-            }
-        });
-        
+        t.setProducer(new FlattenIterableProducer<>(parent));
+
         source.unsafeSubscribe(parent);
     }
-    
+
     public static <T, R> Observable<R> createFrom(Observable<? extends T> source,
-            Func1<? super T, ? extends Iterable<? extends R>> mapper, int prefetch) {
+                                                  Func1<? super T, ? extends Iterable<? extends R>> mapper, int prefetch) {
         if (source instanceof ScalarSynchronousObservable) {
             T scalar = ((ScalarSynchronousObservable<? extends T>) source).get();
             return Observable.create(new OnSubscribeScalarFlattenIterable<T, R>(scalar, mapper));
         }
         return Observable.create(new OnSubscribeFlattenIterable<T, R>(source, mapper, prefetch));
     }
-    
+
+
+    static final class FlattenIterableProducer<T, R> implements Producer {
+        private final FlattenIterableSubscriber<T, R> parent;
+
+        FlattenIterableProducer(FlattenIterableSubscriber<T, R> parent) {
+            this.parent = parent;
+        }
+
+        @Override
+        public void request(long n) {
+            parent.requestMore(n);
+        }
+    }
+
     static final class FlattenIterableSubscriber<T, R> extends Subscriber<T> {
         final Subscriber<? super R> actual;
-        
+
         final Func1<? super T, ? extends Iterable<? extends R>> mapper;
-        
+
         final long limit;
-        
+
         final Queue<Object> queue;
 
         final AtomicReference<Throwable> error;
-        
+
         final AtomicLong requested;
-        
+
         final AtomicInteger wip;
-        
+
         final NotificationLite<T> nl;
-        
+
         volatile boolean done;
-        
+
         long produced;
-        
+
         Iterator<? extends R> active;
-        
+
         public FlattenIterableSubscriber(Subscriber<? super R> actual,
-                Func1<? super T, ? extends Iterable<? extends R>> mapper, int prefetch) {
+                                         Func1<? super T, ? extends Iterable<? extends R>> mapper, int prefetch) {
             this.actual = actual;
             this.mapper = mapper;
             this.error = new AtomicReference<Throwable>();
@@ -120,7 +138,7 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
             }
             request(prefetch);
         }
-        
+
         @Override
         public void onNext(T t) {
             if (!queue.offer(nl.next(t))) {
@@ -130,7 +148,7 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
             }
             drain();
         }
-        
+
         @Override
         public void onError(Throwable e) {
             if (ExceptionsUtils.addThrowable(error, e)) {
@@ -140,13 +158,13 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
                 RxJavaHooks.onError(e);
             }
         }
-        
+
         @Override
         public void onCompleted() {
             done = true;
             drain();
         }
-        
+
         void requestMore(long n) {
             if (n > 0) {
                 BackpressureUtils.getAndAddRequest(requested, n);
@@ -155,34 +173,34 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
                 throw new IllegalStateException("n >= 0 required but it was " + n);
             }
         }
-        
+
         void drain() {
             if (wip.getAndIncrement() != 0) {
                 return;
             }
-            
+
             final Subscriber<? super R> actual = this.actual;
             final Queue<Object> queue = this.queue;
-            
+
             int missed = 1;
-            
-            for (;;) {
-                
+
+            for (; ; ) {
+
                 Iterator<? extends R> it = active;
-                
+
                 if (it == null) {
                     boolean d = done;
-                    
+
                     Object v = queue.poll();
-                    
+
                     boolean empty = v == null;
 
                     if (checkTerminated(d, empty, actual, queue)) {
                         return;
                     }
-                    
+
                     if (!empty) {
-                    
+
                         long p = produced + 1;
                         if (p == limit) {
                             produced = 0L;
@@ -190,43 +208,43 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
                         } else {
                             produced = p;
                         }
-                        
+
                         boolean b;
-                        
+
                         try {
                             Iterable<? extends R> iter = mapper.call(nl.getValue(v));
-                            
+
                             it = iter.iterator();
-                            
+
                             b = it.hasNext();
                         } catch (Throwable ex) {
                             Exceptions.throwIfFatal(ex);
-                            
+
                             it = null;
                             onError(ex);
-                            
+
                             continue;
                         }
-                        
+
                         if (!b) {
                             continue;
                         }
-                        
+
                         active = it;
                     }
                 }
-                
+
                 if (it != null) {
                     long r = requested.get();
                     long e = 0L;
-                    
+
                     while (e != r) {
                         if (checkTerminated(done, false, actual, queue)) {
                             return;
                         }
-                        
+
                         R v;
-                        
+
                         try {
                             v = it.next();
                         } catch (Throwable ex) {
@@ -236,7 +254,7 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
                             onError(ex);
                             break;
                         }
-                        
+
                         actual.onNext(v);
 
                         if (checkTerminated(done, false, actual, queue)) {
@@ -246,7 +264,7 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
                         e++;
 
                         boolean b;
-                        
+
                         try {
                             b = it.hasNext();
                         } catch (Throwable ex) {
@@ -256,43 +274,43 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
                             onError(ex);
                             break;
                         }
-                        
+
                         if (!b) {
                             it = null;
                             active = null;
                             break;
                         }
                     }
-                    
+
                     if (e == r) {
                         if (checkTerminated(done, queue.isEmpty() && it == null, actual, queue)) {
                             return;
                         }
                     }
-                    
+
                     if (e != 0L) {
                         BackpressureUtils.produced(requested, e);
                     }
-                    
+
                     if (it == null) {
                         continue;
                     }
                 }
-                
+
                 missed = wip.addAndGet(-missed);
                 if (missed == 0) {
                     break;
                 }
             }
         }
-        
+
         boolean checkTerminated(boolean d, boolean empty, Subscriber<?> a, Queue<?> q) {
             if (a.isUnsubscribed()) {
                 q.clear();
                 active = null;
                 return true;
             }
-            
+
             if (d) {
                 Throwable ex = error.get();
                 if (ex != null) {
@@ -300,21 +318,20 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
                     unsubscribe();
                     q.clear();
                     active = null;
-                    
+
                     a.onError(ex);
                     return true;
-                } else
-                if (empty) {
-                    
+                } else if (empty) {
+
                     a.onCompleted();
                     return true;
                 }
             }
-            
+
             return false;
         }
     }
-    
+
     /**
      * A custom flattener that works from a scalar value and computes the iterable
      * during subscription time.
@@ -324,7 +341,7 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
      */
     static final class OnSubscribeScalarFlattenIterable<T, R> implements OnSubscribe<R> {
         final T value;
-        
+
         final Func1<? super T, ? extends Iterable<? extends R>> mapper;
 
         public OnSubscribeScalarFlattenIterable(T value, Func1<? super T, ? extends Iterable<? extends R>> mapper) {
@@ -338,20 +355,20 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
             boolean b;
             try {
                 Iterable<? extends R> it = mapper.call(value);
-                
+
                 itor = it.iterator();
-                
+
                 b = itor.hasNext();
             } catch (Throwable ex) {
                 Exceptions.throwOrReport(ex, t, value);
                 return;
             }
-            
+
             if (!b) {
                 t.onCompleted();
                 return;
             }
-            
+
             t.setProducer(new OnSubscribeFromIterable.IterableProducer<R>(t, itor));
         }
     }

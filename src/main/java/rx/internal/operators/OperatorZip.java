@@ -15,6 +15,8 @@
  */
 package rx.internal.operators;
 
+import com.google.j2objc.annotations.WeakOuter;
+
 import java.util.concurrent.atomic.AtomicLong;
 
 import rx.*;
@@ -96,9 +98,9 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
     @SuppressWarnings("rawtypes")
     @Override
     public Subscriber<? super Observable[]> call(final Subscriber<? super R> child) {
-        final Zip<R> zipper = new Zip<R>(child, zipFunction);
-        final ZipProducer<R> producer = new ZipProducer<R>(zipper);
-        final ZipSubscriber subscriber = new ZipSubscriber(child, zipper, producer);
+        final Zip<R> zipper = new Zip<>(child, zipFunction);
+        final ZipProducer<R> producer = new ZipProducer<>(zipper);
+        final ZipSubscriber subscriber = new ZipSubscriber<>(child, zipper, producer);
 
         child.add(subscriber);
         child.setProducer(producer);
@@ -107,7 +109,7 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
     }
 
     @SuppressWarnings("rawtypes")
-    final class ZipSubscriber extends Subscriber<Observable[]> {
+    static final class ZipSubscriber<R> extends Subscriber<Observable[]> {
 
         final Subscriber<? super R> child;
         final Zip<R> zipper;
@@ -115,7 +117,7 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
 
         boolean started;
 
-        public ZipSubscriber(Subscriber<? super R> child, Zip<R> zipper, ZipProducer<R> producer) {
+        ZipSubscriber(Subscriber<? super R> child, Zip<R> zipper, ZipProducer<R> producer) {
             this.child = child;
             this.zipper = zipper;
             this.producer = producer;
@@ -288,6 +290,7 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
         // used to observe each Observable we are zipping together
         // it collects all items in an internal queue
         @SuppressWarnings("rawtypes")
+        @WeakOuter
         final class InnerSubscriber extends Subscriber {
             // Concurrent* since we need to read it from across threads
             final RxRingBuffer items = RxRingBuffer.getSpmcInstance();
