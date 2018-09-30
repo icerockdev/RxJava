@@ -58,7 +58,7 @@ public final class OperatorOnBackpressureLatest<T> implements Operator<T, T> {
     static final class LatestEmitter<T> extends AtomicLong implements Producer, Subscription, Observer<T> {
         /** */
         private static final long serialVersionUID = -1364393685005146274L;
-        final Subscriber<? super T> child;
+        Subscriber<? super T> child;
         LatestSubscriber<? super T> parent;
         final AtomicReference<Object> value;
         /** Written before done, read after done. */
@@ -122,6 +122,12 @@ public final class OperatorOnBackpressureLatest<T> implements Operator<T, T> {
         public void unsubscribe() {
             if (get() >= 0) {
                 getAndSet(Long.MIN_VALUE);
+
+                // J2Objc ARC fix
+                child = null;
+                parent = null;
+                value.lazySet(null);
+                terminal = null;
             }
         }
         

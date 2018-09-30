@@ -264,9 +264,9 @@ public final class CachedObservable<T> extends Observable<T> {
         /** */
         private static final long serialVersionUID = -2557562030197141021L;
         /** The actual child subscriber. */
-        final Subscriber<? super T> child;
+        Subscriber<? super T> child;
         /** The cache state object. */
-        final CacheState<T> state;
+        CacheState<T> state;
         
         /** 
          * Contains the reference to the buffer segment in replay.
@@ -329,6 +329,11 @@ public final class CachedObservable<T> extends Observable<T> {
                 r = getAndSet(-1L); // unsubscribed state is negative
                 if (r >= 0) {
                     state.removeProducer(this);
+
+                    // J2Objc ARC fix
+                    child = null;
+                    state = null;
+                    currentBuffer = null;
                 }
             }
         }

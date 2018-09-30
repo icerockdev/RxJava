@@ -176,8 +176,8 @@ public final class CachedThreadScheduler extends Scheduler implements SchedulerL
 
     static final class EventLoopWorker extends Scheduler.Worker implements Action0 {
         private final CompositeSubscription innerSubscription = new CompositeSubscription();
-        private final CachedWorkerPool pool;
-        private final ThreadWorker threadWorker;
+        private CachedWorkerPool pool;
+        private ThreadWorker threadWorker;
         final AtomicBoolean once;
 
         EventLoopWorker(CachedWorkerPool pool) {
@@ -193,6 +193,10 @@ public final class CachedThreadScheduler extends Scheduler implements SchedulerL
 
                 // Release the worker _after_ the previous action (if any) has completed
                 threadWorker.schedule(this);
+
+                // J2Objc ARC fix
+                pool = null;
+                threadWorker = null;
             }
             innerSubscription.unsubscribe();
         }

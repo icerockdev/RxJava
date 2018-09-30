@@ -171,9 +171,9 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
         /** */
         private static final long serialVersionUID = 5995274816189928317L;
         
-        final Observer<? super R> child;
-        private final FuncN<? extends R> zipFunction;
-        private final CompositeSubscription childSubscription = new CompositeSubscription();
+        Observer<? super R> child;
+        private FuncN<? extends R> zipFunction;
+        private CompositeSubscription childSubscription = new CompositeSubscription();
 
         static final int THRESHOLD = (int) (RxRingBuffer.SIZE * 0.7);
         int emitted; // not volatile/synchronized as accessed inside COUNTER_UPDATER block
@@ -242,6 +242,13 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
                                 // we need to unsubscribe from all children since children are
                                 // independently subscribed
                                 childSubscription.unsubscribe();
+
+                                // J2Objc ARC fix
+                                this.requested = null;
+                                this.child = null;
+                                this.zipFunction = null;
+                                this.childSubscription = null;
+
                                 return;
                             } else {
                                 vs[i] = buffer.getValue(n);
@@ -257,6 +264,13 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
                                 emitted++;
                             } catch (Throwable e) {
                                 Exceptions.throwOrReport(e, child, vs);
+
+                                // J2Objc ARC fix
+                                this.requested = null;
+                                this.child = null;
+                                this.zipFunction = null;
+                                this.childSubscription = null;
+
                                 return;
                             }
                             // now remove them
@@ -269,6 +283,13 @@ public final class OperatorZip<R> implements Operator<R, Observable<?>[]> {
                                     child.onCompleted();
                                     // we need to unsubscribe from all children since children are independently subscribed
                                     childSubscription.unsubscribe();
+
+                                    // J2Objc ARC fix
+                                    this.requested = null;
+                                    this.child = null;
+                                    this.zipFunction = null;
+                                    this.childSubscription = null;
+
                                     return;
                                 }
                             }

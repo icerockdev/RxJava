@@ -113,7 +113,7 @@ public final class OnSubscribeFromEmitter<T> implements OnSubscribe<T> {
         /** */
         private static final long serialVersionUID = 7326289992464377023L;
 
-        final Subscriber<? super T> actual;
+        Subscriber<? super T> actual;
         
         final SerialSubscription serial;
 
@@ -150,6 +150,9 @@ public final class OnSubscribeFromEmitter<T> implements OnSubscribe<T> {
         public final void unsubscribe() {
             serial.unsubscribe();
             onUnsubscribed();
+
+            // J2Objc ARC fix
+            actual = null;
         }
         
         void onUnsubscribed() {
@@ -312,14 +315,14 @@ public final class OnSubscribeFromEmitter<T> implements OnSubscribe<T> {
         /** */
         private static final long serialVersionUID = 2427151001689639875L;
 
-        final Queue<Object> queue;
+        Queue<Object> queue;
         
         Throwable error;
         volatile boolean done;
         
         final AtomicInteger wip;
         
-        final NotificationLite<T> nl;
+        NotificationLite<T> nl;
         
         public BufferAsyncEmitter(Subscriber<? super T> actual, int capacityHint) {
             super(actual);
@@ -359,6 +362,11 @@ public final class OnSubscribeFromEmitter<T> implements OnSubscribe<T> {
             if (wip.getAndIncrement() == 0) {
                 queue.clear();
             }
+
+            // J2Objc ARC fix
+            error = null;
+            queue = null;
+            nl = null;
         }
         
         void drain() {

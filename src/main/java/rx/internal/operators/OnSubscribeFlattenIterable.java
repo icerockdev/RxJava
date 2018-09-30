@@ -94,13 +94,13 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
     }
 
     static final class FlattenIterableSubscriber<T, R> extends Subscriber<T> {
-        final Subscriber<? super R> actual;
+        Subscriber<? super R> actual;
 
         final Func1<? super T, ? extends Iterable<? extends R>> mapper;
 
         final long limit;
 
-        final Queue<Object> queue;
+        Queue<Object> queue;
 
         final AtomicReference<Throwable> error;
 
@@ -196,6 +196,11 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
                     boolean empty = v == null;
 
                     if (checkTerminated(d, empty, actual, queue)) {
+
+                        // J2Objc ARC fix
+                        this.actual = null;
+                        this.queue = null;
+
                         return;
                     }
 
@@ -240,6 +245,11 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
 
                     while (e != r) {
                         if (checkTerminated(done, false, actual, queue)) {
+
+                            // J2Objc ARC fix
+                            this.actual = null;
+                            this.queue = null;
+
                             return;
                         }
 
@@ -258,6 +268,11 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
                         actual.onNext(v);
 
                         if (checkTerminated(done, false, actual, queue)) {
+
+                            // J2Objc ARC fix
+                            this.actual = null;
+                            this.queue = null;
+
                             return;
                         }
 
@@ -284,6 +299,11 @@ public final class OnSubscribeFlattenIterable<T, R> implements OnSubscribe<R> {
 
                     if (e == r) {
                         if (checkTerminated(done, queue.isEmpty() && it == null, actual, queue)) {
+
+                            // J2Objc ARC fix
+                            this.actual = null;
+                            this.queue = null;
+
                             return;
                         }
                     }

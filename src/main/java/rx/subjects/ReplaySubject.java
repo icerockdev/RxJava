@@ -1220,7 +1220,7 @@ public final class ReplaySubject<T> extends Subject<T, T> {
         final AtomicLong requested;
 
         /** Holds the back-reference to the replay state object. */
-        final ReplayState<T> state;
+        ReplayState<T> state;
 
         /** 
          * Unbounded buffer.drain() uses this field to remember the absolute index of
@@ -1248,6 +1248,10 @@ public final class ReplaySubject<T> extends Subject<T, T> {
         @Override
         public void unsubscribe() {
             state.remove(this);
+
+            // J2Objc ARC fix
+            state = null;
+            node = null;
         }
 
         @Override

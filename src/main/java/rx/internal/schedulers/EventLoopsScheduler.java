@@ -140,7 +140,7 @@ public final class EventLoopsScheduler extends Scheduler implements SchedulerLif
         private final SubscriptionList serial = new SubscriptionList();
         private final CompositeSubscription timed = new CompositeSubscription();
         private final SubscriptionList both = new SubscriptionList(serial, timed);
-        private final PoolWorker poolWorker;
+        private PoolWorker poolWorker;
 
         EventLoopWorker(PoolWorker poolWorker) {
             this.poolWorker = poolWorker;
@@ -150,6 +150,9 @@ public final class EventLoopsScheduler extends Scheduler implements SchedulerLif
         @Override
         public void unsubscribe() {
             both.unsubscribe();
+
+            // J2Objc ARC fix
+            poolWorker = null;
         }
 
         @Override

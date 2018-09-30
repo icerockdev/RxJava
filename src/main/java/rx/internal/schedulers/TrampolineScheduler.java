@@ -43,7 +43,7 @@ public final class TrampolineScheduler extends Scheduler {
     static final class InnerCurrentThreadScheduler extends Scheduler.Worker implements Subscription {
 
         final AtomicInteger counter = new AtomicInteger();
-        final PriorityBlockingQueue<TimedAction> queue = new PriorityBlockingQueue<TimedAction>();
+        PriorityBlockingQueue<TimedAction> queue = new PriorityBlockingQueue<TimedAction>();
         private final BooleanSubscription innerSubscription = new BooleanSubscription();
         private final AtomicInteger wip = new AtomicInteger();
 
@@ -90,6 +90,10 @@ public final class TrampolineScheduler extends Scheduler {
         @Override
         public void unsubscribe() {
             innerSubscription.unsubscribe();
+
+            // J2Objc ARC fix
+            queue.clear();
+            queue = null;
         }
 
         @Override

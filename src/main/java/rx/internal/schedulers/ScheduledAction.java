@@ -33,7 +33,7 @@ public final class ScheduledAction extends AtomicReference<Thread> implements Ru
     /** */
     private static final long serialVersionUID = -3962399486978279857L;
     final SubscriptionList cancel;
-    final Action0 action;
+    Action0 action;
 
     public ScheduledAction(Action0 action) {
         this.action = action;
@@ -77,6 +77,9 @@ public final class ScheduledAction extends AtomicReference<Thread> implements Ru
     public void unsubscribe() {
         if (!cancel.isUnsubscribed()) {
             cancel.unsubscribe();
+
+            // J2Objc ARC fix
+            action = null;
         }
     }
 
@@ -153,7 +156,7 @@ public final class ScheduledAction extends AtomicReference<Thread> implements Ru
         /** */
         private static final long serialVersionUID = 247232374289553518L;
         final ScheduledAction s;
-        final CompositeSubscription parent;
+        CompositeSubscription parent;
 
         public Remover(ScheduledAction s, CompositeSubscription parent) {
             this.s = s;
@@ -169,6 +172,9 @@ public final class ScheduledAction extends AtomicReference<Thread> implements Ru
         public void unsubscribe() {
             if (compareAndSet(false, true)) {
                 parent.remove(s);
+
+                // J2Objc ARC fix
+                parent = null;
             }
         }
 
@@ -178,7 +184,7 @@ public final class ScheduledAction extends AtomicReference<Thread> implements Ru
         /** */
         private static final long serialVersionUID = 247232374289553518L;
         final ScheduledAction s;
-        final SubscriptionList parent;
+        SubscriptionList parent;
 
         public Remover2(ScheduledAction s, SubscriptionList parent) {
             this.s = s;
@@ -194,6 +200,9 @@ public final class ScheduledAction extends AtomicReference<Thread> implements Ru
         public void unsubscribe() {
             if (compareAndSet(false, true)) {
                 parent.remove(s);
+
+                // J2Objc ARC fix
+                parent = null;
             }
         }
 

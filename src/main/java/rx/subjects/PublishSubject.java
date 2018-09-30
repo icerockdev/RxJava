@@ -256,9 +256,9 @@ public final class PublishSubject<T> extends Subject<T, T> {
         /** */
         private static final long serialVersionUID = 6451806817170721536L;
 
-        final PublishSubjectState<T> parent;
+        PublishSubjectState<T> parent;
         
-        final Subscriber<? super T> actual;
+        Subscriber<? super T> actual;
         
         long produced;
         
@@ -292,6 +292,10 @@ public final class PublishSubject<T> extends Subject<T, T> {
         public void unsubscribe() {
             if (getAndSet(Long.MIN_VALUE) != Long.MIN_VALUE) {
                 parent.remove(this);
+
+                // J2Objc ARC fix
+                parent = null;
+                actual = null;
             }
         }
         

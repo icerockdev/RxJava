@@ -118,6 +118,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
         /** */
         private static final long serialVersionUID = -1214379189873595503L;
 
+        @Weak
         final MergeSubscriber<T> subscriber;
         
         public MergeProducer(MergeSubscriber<T> subscriber) {
@@ -150,8 +151,7 @@ public final class OperatorMerge<T> implements Operator<T, Observable<? extends 
         final Subscriber<? super T> child;
         final boolean delayErrors;
         final int maxConcurrent;
-
-        @Weak
+        
         MergeProducer<T> producer;
         
         volatile Queue<Object> queue;

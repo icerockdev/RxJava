@@ -57,9 +57,9 @@ public final class CompletableFromEmitter implements Completable.OnSubscribe {
         /** */
         private static final long serialVersionUID = 5539301318568668881L;
 
-        final CompletableSubscriber actual;
+        CompletableSubscriber actual;
         
-        final SequentialSubscription resource;
+        SequentialSubscription resource;
         
         public FromEmitter(CompletableSubscriber actual) {
             this.actual = actual;
@@ -104,6 +104,10 @@ public final class CompletableFromEmitter implements Completable.OnSubscribe {
         public void unsubscribe() {
             if (compareAndSet(false, true)) {
                 resource.unsubscribe();
+
+                // J2Objc ARC fix
+                actual = null;
+                resource = null;
             }
         }
 

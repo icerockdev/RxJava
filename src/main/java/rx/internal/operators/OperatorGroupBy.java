@@ -423,9 +423,9 @@ public final class OperatorGroupBy<T, K, V> implements Operator<GroupedObservabl
         /** */
         private static final long serialVersionUID = -3852313036005250360L;
 
-        final K key;
-        final Queue<Object> queue;
-        final GroupBySubscriber<?, K, T> parent;
+        K key;
+        Queue<Object> queue;
+        GroupBySubscriber<?, K, T> parent;
         final boolean delayError;
         
         final AtomicLong requested;
@@ -472,6 +472,12 @@ public final class OperatorGroupBy<T, K, V> implements Operator<GroupedObservabl
             if (cancelled.compareAndSet(false, true)) {
                 if (getAndIncrement() == 0) {
                     parent.cancel(key);
+
+                    // J2Objc ARC fix
+                    key = null;
+                    queue = null;
+                    parent = null;
+                    actual.lazySet(null);
                 }
             }
         }

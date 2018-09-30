@@ -23,53 +23,6 @@ import java.util.*;
 import rx.internal.util.SuppressAnimalSniffer;
 import rx.internal.util.atomic.LinkedQueueNode;
 
-abstract class BaseLinkedQueuePad0<E> extends AbstractQueue<E> {
-    long p00, p01, p02, p03, p04, p05, p06, p07;
-    long p30, p31, p32, p33, p34, p35, p36, p37;
-}
-
-@SuppressAnimalSniffer
-abstract class BaseLinkedQueueProducerNodeRef<E> extends BaseLinkedQueuePad0<E> {
-    protected final static long P_NODE_OFFSET = UnsafeAccess.addressOf(BaseLinkedQueueProducerNodeRef.class, "producerNode");
-
-    protected LinkedQueueNode<E> producerNode;
-    protected final void spProducerNode(LinkedQueueNode<E> node) {
-        producerNode = node;
-    }
-    
-    @SuppressWarnings("unchecked")
-    protected final LinkedQueueNode<E> lvProducerNode() {
-        return (LinkedQueueNode<E>) UNSAFE.getObjectVolatile(this, P_NODE_OFFSET);
-    }
-    
-    protected final LinkedQueueNode<E> lpProducerNode() {
-        return producerNode;
-    }
-}
-
-abstract class BaseLinkedQueuePad1<E> extends BaseLinkedQueueProducerNodeRef<E> {
-    long p00, p01, p02, p03, p04, p05, p06, p07;
-    long p30, p31, p32, p33, p34, p35, p36, p37;
-}
-
-@SuppressAnimalSniffer
-abstract class BaseLinkedQueueConsumerNodeRef<E> extends BaseLinkedQueuePad1<E> {
-    protected final static long C_NODE_OFFSET = UnsafeAccess.addressOf(BaseLinkedQueueConsumerNodeRef.class, "consumerNode");
-    protected LinkedQueueNode<E> consumerNode;
-    protected final void spConsumerNode(LinkedQueueNode<E> node) {
-        consumerNode = node;
-    }
-    
-    @SuppressWarnings("unchecked")
-    protected final LinkedQueueNode<E> lvConsumerNode() {
-        return (LinkedQueueNode<E>) UNSAFE.getObjectVolatile(this, C_NODE_OFFSET);
-    }
-    
-    protected final LinkedQueueNode<E> lpConsumerNode() {
-        return consumerNode;
-    }
-}
-
 /**
  * A base data structure for concurrent linked queues.
  * 

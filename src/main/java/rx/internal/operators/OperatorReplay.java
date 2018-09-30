@@ -645,7 +645,7 @@ public final class OperatorReplay<T> extends ConnectableObservable<T> {
          * The parent subscriber-to-source used to allow removing the child in case of
          * child unsubscription.
          */
-        final ReplaySubscriber<T> parent;
+        ReplaySubscriber<T> parent;
         /** The actual child subscriber. */
         Subscriber<? super T> child;
         /** 
@@ -790,6 +790,10 @@ public final class OperatorReplay<T> extends ConnectableObservable<T> {
                     parent.manageRequests(this);
                     // break the reference
                     child = null;
+
+                    // J2Objc ARC fix
+                    parent = null;
+                    index = null;
                 }
             }
         }

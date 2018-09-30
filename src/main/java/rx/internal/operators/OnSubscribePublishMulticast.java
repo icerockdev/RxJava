@@ -47,7 +47,7 @@ implements Observable.OnSubscribe<T>, Observer<T>, Subscription {
      * The prefetch queue holding onto a fixed amount of items until all
      * all child subscribers have requested something.
      */
-    final Queue<T> queue;
+    Queue<T> queue;
     /**
      * The number of items to prefetch from the upstreams source.
      */
@@ -421,6 +421,12 @@ implements Observable.OnSubscribe<T>, Observer<T>, Subscription {
     @Override
     public void unsubscribe() {
         parent.unsubscribe();
+
+        // J2Objc ARC fix
+        this.error = null;
+        this.producer = null;
+        this.queue = null;
+        this.subscribers = null;
     }
     
     @Override
@@ -444,10 +450,10 @@ implements Observable.OnSubscribe<T>, Observer<T>, Subscription {
         private static final long serialVersionUID = 960704844171597367L;
 
         /** The actual subscriber to receive the events. */
-        final Subscriber<? super T> actual;
+        Subscriber<? super T> actual;
         
         /** The parent object to request draining or removal. */
-        final OnSubscribePublishMulticast<T> parent;
+        OnSubscribePublishMulticast<T> parent;
         
         /** Makes sure unsubscription happens only once. */
         final AtomicBoolean once;
@@ -478,6 +484,10 @@ implements Observable.OnSubscribe<T>, Observer<T>, Subscription {
         public void unsubscribe() {
             if (once.compareAndSet(false, true)) {
                 parent.remove(this);
+
+                // J2Objc ARC fix
+                actual = null;
+                parent = null;
             }
         }
     }

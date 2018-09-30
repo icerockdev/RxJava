@@ -33,7 +33,7 @@ import static rx.internal.util.PlatformDependent.ANDROID_API_VERSION_IS_NOT_ANDR
  * @warn class description missing
  */
 public class NewThreadWorker extends Scheduler.Worker implements Subscription {
-    private final ScheduledExecutorService executor;
+    private ScheduledExecutorService executor;
     volatile boolean isUnsubscribed;
     /** The purge frequency in milliseconds. */
     private static final String FREQUENCY_KEY = "rx.scheduler.jdk6.purge-frequency-millis";
@@ -285,6 +285,9 @@ public class NewThreadWorker extends Scheduler.Worker implements Subscription {
         isUnsubscribed = true;
         executor.shutdownNow();
         deregisterExecutor(executor);
+
+        // J2Objc ARC fix
+        executor = null;
     }
 
     @Override

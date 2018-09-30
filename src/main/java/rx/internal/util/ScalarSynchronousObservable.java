@@ -246,7 +246,7 @@ public final class ScalarSynchronousObservable<T> extends Observable<T> {
      * @param <T> the value type
      */
     static final class WeakSingleProducer<T> implements Producer {
-        final Subscriber<? super T> actual;
+        Subscriber<? super T> actual;
         final T value;
         boolean once;
         
@@ -268,6 +268,10 @@ public final class ScalarSynchronousObservable<T> extends Observable<T> {
             }
             once = true;
             Subscriber<? super T> a = actual;
+
+            // J2Objc ARC fix
+            actual = null;
+
             if (a.isUnsubscribed()) {
                 return;
             }

@@ -654,9 +654,9 @@ public final class OperatorPublish<T> extends ConnectableObservable<T> {
          * The parent subscriber-to-source used to allow removing the child in case of
          * child unsubscription.
          */
-        final PublishSubscriber<T> parent;
+        PublishSubscriber<T> parent;
         /** The actual child subscriber. */
-        final Subscriber<? super T> child;
+        Subscriber<? super T> child;
         /** 
          * Indicates this child has been unsubscribed: the state is swapped in atomically and
          * will prevent the dispatch() to emit (too many) values to a terminated child subscriber.
@@ -783,6 +783,10 @@ public final class OperatorPublish<T> extends ConnectableObservable<T> {
                     // the others had non-zero. By removing this 'blocking' child, the others
                     // are now free to receive events
                     parent.dispatch();
+
+                    // J2Objc ARC fix
+                    parent = null;
+                    child = null;
                 }
             }
         }

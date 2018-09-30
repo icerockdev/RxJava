@@ -87,12 +87,12 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
     static final class LatestCoordinator<T, R> extends AtomicInteger implements Producer, Subscription {
         /** */
         private static final long serialVersionUID = 8567835998786448817L;
-        final Subscriber<? super R> actual;
-        final FuncN<? extends R> combiner;
-        final CombinerSubscriber<T, R>[] subscribers;
+        Subscriber<? super R> actual;
+        FuncN<? extends R> combiner;
+        CombinerSubscriber<T, R>[] subscribers;
         final int bufferSize;
-        final Object[] latest;
-        final SpscLinkedArrayQueue<Object> queue;
+        Object[] latest;
+        SpscLinkedArrayQueue<Object> queue;
         final boolean delayError;
         
         volatile boolean cancelled;
@@ -161,6 +161,13 @@ public final class OnSubscribeCombineLatest<T, R> implements OnSubscribe<R> {
                 
                 if (getAndIncrement() == 0) {
                     cancel(queue);
+
+                    // J2Objc ARC fix
+                    actual = null;
+                    combiner = null;
+                    subscribers = null;
+                    latest = null;
+                    queue = null;
                 }
             }
         }

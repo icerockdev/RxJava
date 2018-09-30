@@ -104,8 +104,8 @@ import rx.subscriptions.Subscriptions;
  */
 @Experimental
 public class SchedulerWhen extends Scheduler implements Subscription {
-	private final Scheduler actualScheduler;
-	private final Observer<Observable<Completable>> workerObserver;
+	private Scheduler actualScheduler;
+	private Observer<Observable<Completable>> workerObserver;
 	private final Subscription subscription;
 
 	public SchedulerWhen(Func1<Observable<Observable<Completable>>, Completable> combine, Scheduler actualScheduler) {
@@ -121,6 +121,10 @@ public class SchedulerWhen extends Scheduler implements Subscription {
 	@Override
 	public void unsubscribe() {
 		subscription.unsubscribe();
+
+		// J2Objc ARC fix
+		workerObserver = null;
+		actualScheduler = null;
 	}
 
 	@Override

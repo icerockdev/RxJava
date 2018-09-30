@@ -36,7 +36,7 @@ public abstract class Subscriber<T> implements Observer<T>, Subscription {
     private static final long NOT_SET = Long.MIN_VALUE;
 
     private final SubscriptionList subscriptions;
-    private final Subscriber<?> subscriber;
+    private Subscriber<?> subscriber;
     /* protected by `this` */
     private Producer producer;
     /* protected by `this` */
@@ -96,6 +96,10 @@ public abstract class Subscriber<T> implements Observer<T>, Subscription {
     @Override
     public final void unsubscribe() {
         subscriptions.unsubscribe();
+
+        // J2Objc ARC fix
+        producer = null;
+        subscriber = null;
     }
 
     /**

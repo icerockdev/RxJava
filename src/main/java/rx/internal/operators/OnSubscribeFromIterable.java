@@ -68,8 +68,8 @@ public final class OnSubscribeFromIterable<T> implements OnSubscribe<T> {
     static final class IterableProducer<T> extends AtomicLong implements Producer {
         /** */
         private static final long serialVersionUID = -8730475647105475802L;
-        private final Subscriber<? super T> o;
-        private final Iterator<? extends T> it;
+        private Subscriber<? super T> o;
+        private Iterator<? extends T> it;
 
         IterableProducer(Subscriber<? super T> o, Iterator<? extends T> it) {
             this.o = o;
@@ -102,6 +102,7 @@ public final class OnSubscribeFromIterable<T> implements OnSubscribe<T> {
             for (;;) {
                 while (e != r) {
                     if (o.isUnsubscribed()) {
+                        cleanup();
                         return;
                     }
                     
@@ -111,12 +112,14 @@ public final class OnSubscribeFromIterable<T> implements OnSubscribe<T> {
                         value = it.next();
                     } catch (Throwable ex) {
                         Exceptions.throwOrReport(ex, o);
+                        cleanup();
                         return;
                     }
                     
                     o.onNext(value);
 
                     if (o.isUnsubscribed()) {
+                        cleanup();
                         return;
                     }
 
@@ -126,6 +129,7 @@ public final class OnSubscribeFromIterable<T> implements OnSubscribe<T> {
                         b = it.hasNext();
                     } catch (Throwable ex) {
                         Exceptions.throwOrReport(ex, o);
+                        cleanup();
                         return;
                     }
                     
@@ -133,6 +137,7 @@ public final class OnSubscribeFromIterable<T> implements OnSubscribe<T> {
                         if (!o.isUnsubscribed()) {
                             o.onCompleted();
                         }
+                        cleanup();
                         return;
                     }
                     
@@ -158,6 +163,7 @@ public final class OnSubscribeFromIterable<T> implements OnSubscribe<T> {
 
             for (;;) {
                 if (o.isUnsubscribed()) {
+                    cleanup();
                     return;
                 }
                 
@@ -167,12 +173,14 @@ public final class OnSubscribeFromIterable<T> implements OnSubscribe<T> {
                     value = it.next();
                 } catch (Throwable ex) {
                     Exceptions.throwOrReport(ex, o);
+                    cleanup();
                     return;
                 }
                 
                 o.onNext(value);
 
                 if (o.isUnsubscribed()) {
+                    cleanup();
                     return;
                 }
 
@@ -182,6 +190,7 @@ public final class OnSubscribeFromIterable<T> implements OnSubscribe<T> {
                     b  = it.hasNext();
                 } catch (Throwable ex) {
                     Exceptions.throwOrReport(ex, o);
+                    cleanup();
                     return;
                 }
 
@@ -189,9 +198,16 @@ public final class OnSubscribeFromIterable<T> implements OnSubscribe<T> {
                     if (!o.isUnsubscribed()) {
                         o.onCompleted();
                     }
+                    cleanup();
                     return;
                 }
             }
+        }
+
+        void cleanup() {
+            // J2Objc ARC fix
+            this.o = null;
+            this.it = null;
         }
     }
 

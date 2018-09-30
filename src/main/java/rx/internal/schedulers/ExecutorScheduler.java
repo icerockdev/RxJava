@@ -42,14 +42,14 @@ public final class ExecutorScheduler extends Scheduler {
 
     /** Worker that schedules tasks on the executor indirectly through a trampoline mechanism. */
     static final class ExecutorSchedulerWorker extends Scheduler.Worker implements Runnable {
-        final Executor executor;
+        Executor executor;
         // TODO: use a better performing structure for task tracking
         final CompositeSubscription tasks;
         // TODO: use MpscLinkedQueue once available
-        final ConcurrentLinkedQueue<ScheduledAction> queue; 
+        ConcurrentLinkedQueue<ScheduledAction> queue;
         final AtomicInteger wip;
         
-        final ScheduledExecutorService service;
+        ScheduledExecutorService service;
         
         public ExecutorSchedulerWorker(Executor executor) {
             this.executor = executor;
@@ -183,6 +183,11 @@ public final class ExecutorScheduler extends Scheduler {
         public void unsubscribe() {
             tasks.unsubscribe();
             queue.clear();
+
+            // J2Objc ARC fix
+            executor = null;
+            queue = null;
+            service = null;
         }
         
     }
