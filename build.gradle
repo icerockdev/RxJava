@@ -9,6 +9,8 @@ buildscript {
 }
 
 description = 'RxJava: Reactive Extensions for the JVM – a library for composing asynchronous and event-based programs using observable sequences for the Java VM.'
+group = 'io.reactivex'
+version = '1.4.0-SNAPSHOT'
 
 apply plugin: 'java'
 //apply plugin: 'pmd'
