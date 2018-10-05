@@ -193,10 +193,6 @@ public final class CachedThreadScheduler extends Scheduler implements SchedulerL
 
                 // Release the worker _after_ the previous action (if any) has completed
                 threadWorker.schedule(this);
-
-                // J2Objc ARC fix
-                pool = null;
-                threadWorker = null;
             }
             innerSubscription.unsubscribe();
         }
