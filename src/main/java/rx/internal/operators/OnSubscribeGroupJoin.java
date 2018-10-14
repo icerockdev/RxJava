@@ -71,7 +71,7 @@ public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscrib
         private static final long serialVersionUID = -3035156013812425335L;
         
         final RefCountSubscription cancel;
-        Subscriber<? super R> subscriber;
+        final Subscriber<? super R> subscriber;
         CompositeSubscription group;
         /** Guarded by this. */
         int leftIds;
@@ -106,11 +106,6 @@ public final class OnSubscribeGroupJoin<T1, T2, D1, D2, R> implements OnSubscrib
         @Override
         public void unsubscribe() {
             cancel.unsubscribe();
-
-            // J2Objc ARC fix
-            subscriber = null;
-            group = null;
-            rightMap = null;
         }
         
         @Override

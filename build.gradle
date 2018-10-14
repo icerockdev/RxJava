@@ -141,6 +141,11 @@ animalsniffer {
 //    }
 //}
 
+test {
+    testLogging {
+        exceptionFormat = 'full'
+    }
+}
 
 j2objcConfig {
     autoConfigureDeps true

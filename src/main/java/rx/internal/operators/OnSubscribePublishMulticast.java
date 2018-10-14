@@ -426,7 +426,6 @@ implements Observable.OnSubscribe<T>, Observer<T>, Subscription {
         this.error = null;
         this.producer = null;
         this.queue = null;
-        this.subscribers = null;
     }
     
     @Override

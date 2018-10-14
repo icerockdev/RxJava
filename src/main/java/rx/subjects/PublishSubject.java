@@ -295,7 +295,6 @@ public final class PublishSubject<T> extends Subject<T, T> {
 
                 // J2Objc ARC fix
                 parent = null;
-                actual = null;
             }
         }
         

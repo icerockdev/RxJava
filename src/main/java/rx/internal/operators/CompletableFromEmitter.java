@@ -107,7 +107,6 @@ public final class CompletableFromEmitter implements Completable.OnSubscribe {
 
                 // J2Objc ARC fix
                 actual = null;
-                resource = null;
             }
         }
 

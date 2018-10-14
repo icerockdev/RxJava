@@ -93,7 +93,6 @@ public final class TrampolineScheduler extends Scheduler {
 
             // J2Objc ARC fix
             queue.clear();
-            queue = null;
         }
 
         @Override

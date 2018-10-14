@@ -285,9 +285,6 @@ public class NewThreadWorker extends Scheduler.Worker implements Subscription {
         isUnsubscribed = true;
         executor.shutdownNow();
         deregisterExecutor(executor);
-
-        // J2Objc ARC fix
-        executor = null;
     }
 
     @Override

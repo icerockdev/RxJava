@@ -186,7 +186,6 @@ public final class ExecutorScheduler extends Scheduler {
 
             // J2Objc ARC fix
             executor = null;
-            queue = null;
             service = null;
         }
         
